@@ -8,12 +8,34 @@ moment.locale("ru");
 const app = express();
 require("dotenv").config();
 
-const port = 3333;
-const festUrl = "https://www.fest.md/ru/events/performances";
+const PORT = 3333;
+const DELAY_BETWEEN_MESSAGES = 200;
+const EVENING_START_TIME = "18:00";
+const FEST_URL = "https://www.fest.md/ru/events/performances";
+
+const COMMANDS = [
+  {
+    command: "today_spectacles",
+    description: "Afișează evenimentele de teatru de azi",
+  },
+  {
+    command: "tomorrow_spectacles",
+    description: "Afișează evenimentele de teatru de mâine",
+  },
+  {
+    command: "weekend_spectacles",
+    description: "Listează toate evenimentele de teatru din weekend",
+  },
+  {
+    command: "all_week_evenings_spectacles",
+    description:
+      "Listează toate spectacolele de teatru din săptămână după ora 18:00",
+  },
+];
 
 const scrapeTheaterEvents = async (day) => {
   try {
-    const response = await axios.get(festUrl);
+    const response = await axios.get(FEST_URL);
     if (response.status === 200) {
       const html = response.data;
       const $ = cheerio.load(html);
@@ -42,7 +64,7 @@ const scrapeTheaterEvents = async (day) => {
       let allWeek = [];
       for (let i = 1; i <= 7; i++) {
         const weekDay = t.clone().isoWeekday(i);
-        allWeekEvenings.push(weekDay.format("D MMMM YYYY"));
+        allWeek.push(weekDay.format("D MMMM YYYY"));
       }
 
       const onlyTheaterEvents = events.filter((event) =>
@@ -63,7 +85,7 @@ const scrapeTheaterEvents = async (day) => {
         if (day === "all_week_evenings") {
           return allWeek.some((date) => {
             const eventTime = moment(event.date.split(", ")[1], "HH:mm", true);
-            const comparisonTime = moment("18:00", "HH:mm", true);
+            const comparisonTime = moment(EVENING_START_TIME, "HH:mm", true);
             return (
               event.date.includes(date) &&
               eventTime.isSameOrAfter(comparisonTime)
@@ -100,7 +122,7 @@ const scrapeTheaterEvents = async (day) => {
   }
 };
 
-const listener = app.listen(port, () => {
+const listener = app.listen(PORT, () => {
   console.log(`Aplicația este pornită pe portul ${listener.address().port}`);
 });
 
@@ -111,38 +133,25 @@ bot.on("polling_error", (error) => {
 });
 
 // Set commands
-const commands = [
-  {
-    command: "today_spectacles",
-    description: "Afișează evenimentele de teatru de azi",
-  },
-  {
-    command: "tomorrow_spectacles",
-    description: "Afișează evenimentele de teatru de mâine",
-  },
-  {
-    command: "weekend_spectacles",
-    description: "Listează toate evenimentele de teatru din weekend",
-  },
-  {
-    command: "all_week_evenings_spectacles",
-    description:
-      "Listează toate spectacolele de teatru din săptămână după ora 18:00",
-  },
-];
-
 bot
-  .setMyCommands(commands)
+  .setMyCommands(COMMANDS)
   .then(() => console.log("Comenzile au fost setate cu succes"))
   .catch((error) => console.error(error));
 
-function sendMessageWithDelay(message, chatId, delay) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      bot.sendMessage(chatId, message);
-      resolve();
-    }, delay);
-  });
+async function handleCommand(chatId, day) {
+  const response = await scrapeTheaterEvents(day);
+  if (typeof response === "string") {
+    bot.sendMessage(chatId, response);
+  } else {
+    for (const event of response) {
+      await new Promise((resolve) => {
+        setTimeout(() => {
+          bot.sendMessage(chatId, event);
+          resolve();
+        }, DELAY_BETWEEN_MESSAGES);
+      });
+    }
+  }
 }
 
 // Handle incoming messages
@@ -151,52 +160,19 @@ bot.on("message", async (msg) => {
 
   switch (msg.text) {
     case "/start":
-      bot.sendMessage(chatId, "Bun venit! Alege o comandă:");
+      bot.sendMessage(chatId, "Bun venit!");
       break;
-
     case "/today_spectacles":
-      const response = await scrapeTheaterEvents("today");
-      if (typeof response === "string") {
-        bot.sendMessage(chatId, response);
-        break;
-      }
-      for (const event of response) {
-        await sendMessageWithDelay(event, chatId, 200);
-      }
+      handleCommand(chatId, "today");
       break;
     case "/tomorrow_spectacles":
-      const responseTomorrow = await scrapeTheaterEvents("tomorrow");
-      if (typeof responseTomorrow === "string") {
-        bot.sendMessage(chatId, response);
-        break;
-      }
-      for (const event of responseTomorrow) {
-        await sendMessageWithDelay(event, chatId, 200);
-      }
+      handleCommand(chatId, "tomorrow");
       break;
-
     case "/weekend_spectacles":
-      const responseWeekend = await scrapeTheaterEvents("weekend");
-      if (typeof responseWeekend === "string") {
-        bot.sendMessage(chatId, response);
-        break;
-      }
-      for (const event of responseWeekend) {
-        await sendMessageWithDelay(event, chatId, 200);
-      }
+      handleCommand(chatId, "weekend");
       break;
-
     case "/all_week_evenings_spectacles":
-      const responseAllWeekEvenings = await scrapeTheaterEvents(
-        "all_week_evenings"
-      );
-      if (typeof responseAllWeekEvenings === "string") {
-        bot.sendMessage(chatId, response);
-        break;
-      }
-      for (const event of responseAllWeekEvenings) {
-        await sendMessageWithDelay(event, chatId, 200);
-      }
+      handleCommand(chatId, "all_week_evenings");
       break;
     default:
       // Handle unknown commands or messages
