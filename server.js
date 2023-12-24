@@ -37,7 +37,11 @@ const scrapeTheaterEvents = async (day) => {
       //   moment().day("Sunday").format("D MMMM YYYY"),
       // ];
 
-      const filteredEvents = events.filter((event, index) => {
+      const onlyTheaterEvents = events.filter((event) =>
+        event.link.includes("performances")
+      );
+
+      const filteredEvents = onlyTheaterEvents.filter((event, index) => {
         if (day === "today") {
           return event.date.includes(today);
         }
