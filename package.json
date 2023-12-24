@@ -1,0 +1,24 @@
+{
+  "name": "theater-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Dmitri Calmis",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "moment": "^2.29.4",
+    "node-telegram-bot-api": "^0.61.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.5",
+    "@types/node-telegram-bot-api": "^0.64.1"
+  }
+}
