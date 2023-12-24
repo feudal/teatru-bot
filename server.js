@@ -125,19 +125,15 @@ bot.on("message", async (msg) => {
         bot.sendMessage(chatId, response);
         break;
       }
-      response.forEach((event) => {
-        bot.sendMessage(chatId, event);
-      });
+      response.forEach((event) => bot.sendMessage(chatId, event));
       break;
     case "/tomorrow_spectacles":
       const responseTomorrow = await scrapeTheaterEvents("tomorrow");
-      if (typeof response === "string") {
+      if (typeof responseTomorrow === "string") {
         bot.sendMessage(chatId, response);
         break;
       }
-      responseTomorrow.forEach((event) => {
-        bot.sendMessage(chatId, event);
-      });
+      responseTomorrow.forEach((event) => bot.sendMessage(chatId, event));
       break;
     // case "/week_spectacles":
     //   const responseWeekend = await scrapeTheaterEvents("weekend");
