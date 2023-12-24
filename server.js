@@ -53,20 +53,21 @@ const scrapeTheaterEvents = async (day) => {
         return "Nu sunt evenimente disponibile";
       }
 
-      // sort by hour
-      // const sortedEvents = filteredEvents.sort((a, b) => {
-      //   const aHour = a.date.split(", ")[1];
-      //   const bHour = b.date.split(", ")[1];
-      //   return aHour.localeCompare(bHour);
-      // });
-
-      const formattedEvents = new Set(
+      const uniqueEvents = new Set(
         filteredEvents.map(
           (event) => `${event.date}\nhttps://www.fest.md${event.link}`
         )
       );
 
-      return [...formattedEvents];
+      // sort by hour
+      const sortedEvents = [...uniqueEvents].sort((a, b) => {
+        const timeA = moment(a.split("\n")[0].split(", ")[1], "HH:mm", true);
+        const timeB = moment(b.split("\n")[0].split(", ")[1], "HH:mm", true);
+
+        return timeA - timeB;
+      });
+
+      return sortedEvents;
     }
     return "Eroare la preluarea datelor";
   } catch (error) {
@@ -110,6 +111,15 @@ bot
   .then(() => console.log("Comenzile au fost setate cu succes"))
   .catch((error) => console.error(error));
 
+function sendMessageWithDelay(message, chatId, delay) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      bot.sendMessage(chatId, message);
+      resolve();
+    }, delay);
+  });
+}
+
 // Handle incoming messages
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
@@ -125,7 +135,9 @@ bot.on("message", async (msg) => {
         bot.sendMessage(chatId, response);
         break;
       }
-      response.forEach((event) => bot.sendMessage(chatId, event));
+      for (const event of response) {
+        await sendMessageWithDelay(event, chatId, 200);
+      }
       break;
     case "/tomorrow_spectacles":
       const responseTomorrow = await scrapeTheaterEvents("tomorrow");
@@ -133,8 +145,11 @@ bot.on("message", async (msg) => {
         bot.sendMessage(chatId, response);
         break;
       }
-      responseTomorrow.forEach((event) => bot.sendMessage(chatId, event));
+      for (const event of responseTomorrow) {
+        await sendMessageWithDelay(event, chatId, 200);
+      }
       break;
+
     // case "/week_spectacles":
     //   const responseWeekend = await scrapeTheaterEvents("weekend");
     //   responseWeekend.forEach((event) => {
