@@ -32,10 +32,12 @@ const scrapeTheaterEvents = async (day) => {
 
       const today = moment().format("D MMMM YYYY");
       const tomorrow = moment().add(1, "day").format("D MMMM YYYY");
-      // const weekend = [
-      //   moment().day("Saturday").format("D MMMM YYYY"),
-      //   moment().day("Sunday").format("D MMMM YYYY"),
-      // ];
+
+      // Get the current date
+      const t = moment();
+      // Find the next Saturday and Sunday
+      const saturday = t.clone().isoWeekday(6).format("D MMMM YYYY");
+      const sunday = t.clone().isoWeekday(7).format("D MMMM YYYY");
 
       const onlyTheaterEvents = events.filter((event) =>
         event.link.includes("performances")
@@ -48,9 +50,10 @@ const scrapeTheaterEvents = async (day) => {
         if (day === "tomorrow") {
           return event.date.includes(tomorrow);
         }
-        // if (day === "weekend") {
-        //   return weekend.some((date) => event.date.includes(date));
-        // }
+        if (day === "weekend") {
+          const weekend = [saturday, sunday];
+          return weekend.some((date) => event.date.includes(date));
+        }
       });
 
       if (filteredEvents.length === 0) {
@@ -104,10 +107,10 @@ const commands = [
     command: "tomorrow_spectacles",
     description: "Afișează evenimentele de teatru de mâine",
   },
-  // {
-  //   command: "weekend_spectacles",
-  //   description: "Listează toate evenimentele de teatru din weekend",
-  // },
+  {
+    command: "weekend_spectacles",
+    description: "Listează toate evenimentele de teatru din weekend",
+  },
 ];
 
 bot
@@ -154,11 +157,11 @@ bot.on("message", async (msg) => {
       }
       break;
 
-    // case "/week_spectacles":
-    //   const responseWeekend = await scrapeTheaterEvents("weekend");
-    //   responseWeekend.forEach((event) => {
-    //     bot.sendMessage(chatId, event);
-    //   });
+    case "/weekend_spectacles":
+      const responseWeekend = await scrapeTheaterEvents("weekend");
+      responseWeekend.forEach((event) => {
+        bot.sendMessage(chatId, event);
+      });
     default:
       // Handle unknown commands or messages
       bot.sendMessage(chatId, "Unknown command. Please try again.");
