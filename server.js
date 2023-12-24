@@ -52,21 +52,17 @@ const scrapeTheaterEvents = async (day) => {
         events.push({ date: date.toLowerCase(), link });
       });
 
+      const t = moment(); // today
       const today = moment().format("D MMMM YYYY");
       const tomorrow = moment().add(1, "day").format("D MMMM YYYY");
-
-      // Get the current date
-      const t = moment();
-      // Find the next Saturday and Sunday
       const saturday = t.clone().isoWeekday(6).format("D MMMM YYYY");
       const sunday = t.clone().isoWeekday(7).format("D MMMM YYYY");
+      const allWeek = [];
 
-      let allWeek = [];
       for (let i = 1; i <= 7; i++) {
         const weekDay = t.clone().isoWeekday(i);
         allWeek.push(weekDay.format("D MMMM YYYY"));
       }
-
       const onlyTheaterEvents = events.filter((event) =>
         event.link.includes("performances")
       );
