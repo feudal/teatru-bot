@@ -39,6 +39,12 @@ const scrapeTheaterEvents = async (day) => {
       const saturday = t.clone().isoWeekday(6).format("D MMMM YYYY");
       const sunday = t.clone().isoWeekday(7).format("D MMMM YYYY");
 
+      let allWeek = [];
+      for (let i = 1; i <= 7; i++) {
+        const weekDay = t.clone().isoWeekday(i);
+        allWeekEvenings.push(weekDay.format("D MMMM YYYY"));
+      }
+
       const onlyTheaterEvents = events.filter((event) =>
         event.link.includes("performances")
       );
@@ -54,6 +60,16 @@ const scrapeTheaterEvents = async (day) => {
           const weekend = [saturday, sunday];
           return weekend.some((date) => event.date.includes(date));
         }
+        if (day === "all_week_evenings") {
+          return allWeek.some((date) => {
+            const eventTime = moment(event.date.split(", ")[1], "HH:mm", true);
+            const comparisonTime = moment("18:00", "HH:mm", true);
+            return (
+              event.date.includes(date) &&
+              eventTime.isSameOrAfter(comparisonTime)
+            );
+          });
+        }
       });
 
       if (filteredEvents.length === 0) {
@@ -66,10 +82,11 @@ const scrapeTheaterEvents = async (day) => {
         )
       );
 
-      // sort by hour
+      // sort by date and time
       const sortedEvents = [...uniqueEvents].sort((a, b) => {
-        const timeA = moment(a.split("\n")[0].split(", ")[1], "HH:mm", true);
-        const timeB = moment(b.split("\n")[0].split(", ")[1], "HH:mm", true);
+        const formatString = "DD MMMM YYYY, HH:mm";
+        const timeA = moment(a, formatString);
+        const timeB = moment(b, formatString);
 
         return timeA - timeB;
       });
@@ -82,10 +99,6 @@ const scrapeTheaterEvents = async (day) => {
     return "Eroare la preluarea datelor";
   }
 };
-
-app.get("/", (req, res) => {
-  res.send("Botul funcționează");
-});
 
 const listener = app.listen(port, () => {
   console.log(`Aplicația este pornită pe portul ${listener.address().port}`);
@@ -110,6 +123,11 @@ const commands = [
   {
     command: "weekend_spectacles",
     description: "Listează toate evenimentele de teatru din weekend",
+  },
+  {
+    command: "all_week_evenings_spectacles",
+    description:
+      "Listează toate spectacolele de teatru din săptămână după ora 18:00",
   },
 ];
 
@@ -159,9 +177,27 @@ bot.on("message", async (msg) => {
 
     case "/weekend_spectacles":
       const responseWeekend = await scrapeTheaterEvents("weekend");
-      responseWeekend.forEach((event) => {
-        bot.sendMessage(chatId, event);
-      });
+      if (typeof responseWeekend === "string") {
+        bot.sendMessage(chatId, response);
+        break;
+      }
+      for (const event of responseWeekend) {
+        await sendMessageWithDelay(event, chatId, 200);
+      }
+      break;
+
+    case "/all_week_evenings_spectacles":
+      const responseAllWeekEvenings = await scrapeTheaterEvents(
+        "all_week_evenings"
+      );
+      if (typeof responseAllWeekEvenings === "string") {
+        bot.sendMessage(chatId, response);
+        break;
+      }
+      for (const event of responseAllWeekEvenings) {
+        await sendMessageWithDelay(event, chatId, 200);
+      }
+      break;
     default:
       // Handle unknown commands or messages
       bot.sendMessage(chatId, "Unknown command. Please try again.");
